@@ -1,12 +1,15 @@
 package com.projeto.integrador.Repository;
 
-import org.springframework.data.repository.CrudRepository;
+import com.projeto.integrador.Entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.projeto.integrador.Entity.Users;
-
 @Repository
-public interface UserRepository extends CrudRepository<Users, Integer> {
-    Users save(Users user);
-    Users findByUserId(String userId);
+public interface UserRepository extends JpaRepository<User,Long> {
+    User findByUsername(String name);
+
+    User findByEmail(String email);
+
+    User findByPassword(String password);
+
 }

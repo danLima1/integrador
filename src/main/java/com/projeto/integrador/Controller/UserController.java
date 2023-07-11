@@ -1,37 +1,141 @@
+
+
 package com.projeto.integrador.Controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.projeto.integrador.Entity.Users;
+import com.projeto.integrador.Entity.User;
+import com.projeto.integrador.event.PasswordEvent;
+import com.projeto.integrador.event.RegistrationEvent;
+import com.projeto.integrador.event.TokenEvent;
+import com.projeto.integrador.exceptions.InvalidPasswordException;
+import com.projeto.integrador.exceptions.UserNotFoundException;
+import com.projeto.integrador.model.PasswordModel;
+import com.projeto.integrador.model.PasswordResetEmailVerification;
+import com.projeto.integrador.Repository.PasswordResetTokenRepository;
+import com.projeto.integrador.Service.UserAuthenticationService;
 import com.projeto.integrador.Service.UserService;
-
-import lombok.RequiredArgsConstructor;
-
+import com.projeto.integrador.verificationenums.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import static com.projeto.integrador.verificationenums.PasswordChangeState.*;
 @RestController
-@RequiredArgsConstructor
-@RequestMapping("/users")
-@CrossOrigin(origins = "http://localhost:4200")
 public class UserController {
 
-	@Autowired
-	UserService userService;
+    @Autowired
+    private UserService userService;
 
-	@PostMapping("")
-	private Users submitUser(@RequestBody Users users) {
-		return userService.submitDataofUser(users);
-	}
+    @Autowired
+    private ApplicationEventPublisher publisher;
 
-	@GetMapping("/{userId}")
-	private Users getUserDetails(@PathVariable("userId") String userId) {
-		return userService.displayUserData(userId);
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-	}
+    @Autowired
+    private UserAuthenticationService userAuthenticationService;
+
+    @Autowired
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+
+
+    @PostMapping("/register")
+    public User registerUser(@RequestBody User user, final HttpServletRequest request) throws Exception {
+        userService.registerUser(user);
+        publisher.publishEvent(new RegistrationEvent(user, applicationUrl(request)));
+        return user;
+    }
+
+
+    @GetMapping("/users")
+    public List<User> getUsers() {
+        return userService.getUsers();
+    }
+
+    @PutMapping("/users/{id}")
+    public User updateUser(@PathVariable("id") Long id, @RequestBody User user) throws UserNotFoundException {
+        userService.updateUser(id, user);
+        return user;
+    }
+
+    @GetMapping("/user/{userId}")
+    public User findUserById(@PathVariable("userId") Long userId) throws UserNotFoundException {
+        return userService.findUserById(userId);
+    }
+    @GetMapping("/user/username/{username}")
+    public User findUserByUsername(@PathVariable("username") String username) {
+        return userService.findUserByUsername(username);
+    }
+
+    @GetMapping("/user/email/{email}")
+    public User findUserByEmail(@PathVariable("email") String email) {
+        return userService.findUserByEmail(email);
+    }
+
+
+    @DeleteMapping("/user/{id}")
+    public void deleteUser(@PathVariable("id") Long id) throws UserNotFoundException {
+        userService.deleteUser(id);
+    }
+
+
+    @GetMapping("/verifyRegistration")
+    public TokenStatusEnum verifyRegistration(@RequestParam(name = "token") String token) {
+        TokenStatusEnum result = userService.validateVerificationToken(token);
+        if (!result.equals(TokenStatusEnum.VALID_TOKEN)) {
+            result = TokenStatusEnum.INVALID_TOKEN;
+        }
+        return result;
+    }
+
+    @GetMapping("/resendVerifyToken")
+    public LinkEnum resendVerificationToken(@RequestParam(name = "token") String oldToken, HttpServletRequest request) {
+        VerificationToken verificationToken = userService.generateNewVerificationToken(oldToken);
+        User user = verificationToken.getUser();
+        publisher.publishEvent(new TokenEvent(user, verificationToken, applicationUrl(request)));
+        return LinkEnum.LINK_SENT;
+    }
+
+    @PostMapping("/resetPassword")
+    public void resetPassword(@RequestBody PasswordResetEmailVerification passwordResetEmailVerification, HttpServletRequest request) {
+        PasswordResetToken passwordResetToken = userService.validateOrGeneratePasswordResetToken(passwordResetEmailVerification.getEmail());
+        publisher.publishEvent(new PasswordEvent(passwordResetToken.getUser(), applicationUrl(request), passwordResetToken));
+    }
+
+    @PostMapping("/savePassword")
+    public ResponseEntity<PasswordChangeState> savePassword(@RequestParam("token") String token, @RequestBody PasswordModel passwordModel) throws InvalidPasswordException, UserNotFoundException {
+        TokenStatusEnum result = userService.validatePasswordResetToken(token);
+
+        if (!result.equals(TokenStatusEnum.VALID_TOKEN)) {
+            return new ResponseEntity<>(INVALID_TOKEN_FOR_CHANGING_PASSWORD, HttpStatus.BAD_REQUEST);
+        }
+        User user = userService.getUserByPasswordResetToken(token);
+
+        if (user != null) {
+
+            passwordModel.setToken(userService.getUserPasswordToken(user.getId()).getToken());
+            userService.changePassword(user, passwordModel.getNewPassword());
+            passwordResetTokenRepository.delete(userService.getUserPasswordToken(user.getId()));
+            return new ResponseEntity<>(PASSWORD_CHANGED_SUCCESSFULLY, HttpStatus.OK);
+
+        }
+        return new ResponseEntity<>(FAILED_TO_CHANGE_PASSWORD, HttpStatus.BAD_REQUEST);
+    }
+    @PutMapping("/changePassword")
+    public ResponseEntity<PasswordChangeState> changePassword(@RequestBody PasswordModel passwordModel) throws InvalidPasswordException {
+        User user = userAuthenticationService.getLoggedInUser();
+        if(user != null && passwordEncoder.matches(passwordModel.getOldPassword(), user.getPassword())) {
+            userService.changeUserPassword(user, passwordModel.getNewPassword());
+            return new ResponseEntity<>(PASSWORD_CHANGED_SUCCESSFULLY, HttpStatus.OK);
+        }
+        return new ResponseEntity<>(FAILED_TO_CHANGE_PASSWORD, HttpStatus.BAD_REQUEST);
+    }
+
+    private String applicationUrl(HttpServletRequest request) {
+        return "http://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+    }
 
 }

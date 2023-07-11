@@ -1,36 +1,39 @@
 package com.projeto.integrador.Controller;
 
-
+import com.projeto.integrador.Entity.Comment;
+import com.projeto.integrador.exceptions.TweetNotFoundException;
+import com.projeto.integrador.Service.CommentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.projeto.integrador.Entity.Comments;
-import com.projeto.integrador.Service.CommentService;
-
-
-
-@CrossOrigin
 @RestController
-@RequestMapping("/comments")
 public class CommentController {
-	@Autowired
-	CommentService commentService;
 
-	@PostMapping
-	public Comments submitComment(@RequestBody Comments comments) {
-		return commentService.save(comments);
-	}
+    @Autowired
+    private CommentService commentService;
 
-	@GetMapping("/{postId}")
-	public List<Comments> getCommentsForPost(@PathVariable("postId") String postId) {
-		return commentService.getAllCommentsForDb(postId);
-	}
+
+    @PostMapping("/tweet/{tweetId}/comment")
+    public Comment createComment(@PathVariable Long tweetId, @RequestBody Comment comment) throws TweetNotFoundException {
+        commentService.createTweetComment(tweetId, comment);
+        return comment;
+    }
+
+    @GetMapping("/tweet/{tweetId}/comments")
+    public List<Comment> getTweetComments(@PathVariable Long tweetId) throws TweetNotFoundException {
+        return commentService.getTweetComments(tweetId);
+    }
+
+    @DeleteMapping("/comment/{commentId}")
+    public void deleteComment(@PathVariable Long commentId) throws Exception {
+        commentService.deleteComment(commentId);
+    }
+
+    @PutMapping("/comment/{commentId}")
+    public void updateComment(@PathVariable("commentId") Long commentId, @RequestBody Comment comment) throws Exception {
+        commentService.updateComment(commentId, comment);
+    }
+
+
 }
