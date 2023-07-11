@@ -1,6 +1,6 @@
 package com.projeto.integrador.model;
 
-import com.projeto.integrador.Entity.Follower;
+
 
 public class FolloweeModel {
 
@@ -24,10 +24,10 @@ public class FolloweeModel {
         this.avatar = avatar;
     }
 
-    public static FolloweeModel mapFolloweeToModel(Follower followee){
-        FolloweeModel followeeModel = new FolloweeModel();
-        followeeModel.setUsername(followee.getFollowee().getUsername());
-        followeeModel.setAvatar(followee.getFollowee().getImageUrl());
-        return followeeModel;
-    }
+//    public static FolloweeModel mapFolloweeToModel(Follower followee){
+//        FolloweeModel followeeModel = new FolloweeModel();
+//        followeeModel.setUsername(followee.getFollowee().getUsername());
+//        followeeModel.setAvatar(followee.getFollowee().getImageUrl());
+//        return followeeModel;
+//    }
 }

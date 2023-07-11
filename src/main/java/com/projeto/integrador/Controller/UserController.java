@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import static com.projeto.integrador.verificationenums.PasswordChangeState.*;
+
 @RestController
 public class UserController {
 
@@ -66,7 +67,7 @@ public class UserController {
         return userService.findUserById(userId);
     }
     @GetMapping("/user/username/{username}")
-    public User findUserByUsername(@PathVariable("username") String username) {
+    public User findUserByUsername(@PathVariable("username") String username) throws  UserNotFoundException {
         return userService.findUserByUsername(username);
     }
 

@@ -37,9 +37,9 @@ public class UserService {
 
     public User authenticate() throws Exception {
         User loggedInUser = userAuthenticationService.getLoggedInUser();
-       User email = userRepository.findByEmail(loggedInUser.getEmail());
-       if(email == null){
-           throw new Exception("Email not found");
+       User username = userRepository.findByUsername(loggedInUser.getUsername());
+       if(username == null){
+           throw new Exception("Username not found");
        }
        User password = userRepository.findByPassword(loggedInUser.getPassword());
        if(password == null){
@@ -67,7 +67,7 @@ public class UserService {
         String userUserName = user.getUsername();
         String userPassword = user.getPassword();
         UserAccountType userAccountType = user.getAccountType();
-        String imageUrl = user.getImageUrl();
+        String dateOfBirth = user.getDateOfBirth();
 
 
         boolean invalidUsername = (userUserName == null);
@@ -81,8 +81,9 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setCreationDate(LocalDateTime.now());
         user.setAccountType(userAccountType);
-        user.setImageUrl(imageUrl);
+        user.setImageUrl("../../../assets/user.png");
         user.setAccountStatus(UserStatus.INACTIVE);
+        user.setDateOfBirth(dateOfBirth);
 
         return userRepository.save(user);
 
@@ -117,7 +118,10 @@ public class UserService {
         return userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(String.format("User with id = %s was not found",id)));
     }
 
-    public User findUserByUsername(String username) {
+    public User findUserByUsername(String username) throws UserNotFoundException {
+        if(username == null || username.equals("")) {
+            throw new UserNotFoundException(String.format("User with username = %s was not found",username));
+        }
         return userRepository.findByUsername(username);
     }
 
@@ -132,12 +136,14 @@ public class UserService {
         if (verificationToken == null) {
             return TokenStatusEnum.INVALID_TOKEN;
         }
+
         User user = verificationToken.getUser();
         Calendar calendar = Calendar.getInstance();
         if ((verificationToken.getExpirationDate().getTime() - calendar.getTime().getTime()) <= 0) {
             verificationToken.setTokenStatus(TokenStatusEnum.EXPIRED_TOKEN);
             return TokenStatusEnum.EXPIRED_TOKEN;
         }
+        verificationToken.setTokenStatus(TokenStatusEnum.VALID_TOKEN);
         user.setAccountStatus(UserStatus.ACTIVE);
         userRepository.save(user);
         return TokenStatusEnum.VALID_TOKEN;
@@ -160,6 +166,7 @@ public class UserService {
 
     public PasswordResetToken createPasswordResetTokenForUser(User user, String token) {
         PasswordResetToken passwordResetToken = new PasswordResetToken(user, token);
+        passwordResetToken.setTokenStatus(TokenStatusEnum.VALID_TOKEN);
         passwordResetTokenRepository.save(passwordResetToken);
         return passwordResetToken;
     }

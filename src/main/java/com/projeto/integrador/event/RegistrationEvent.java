@@ -12,7 +12,13 @@ public class RegistrationEvent extends ApplicationEvent {
     private User user;
     private String applicationUrl;
 
-    public User getUser() {
+    public RegistrationEvent(User user, String applicationUrl) {
+        super(user);
+        this.user = user;
+        this.applicationUrl = applicationUrl;
+    }
+
+	public User getUser() {
 		return user;
 	}
 
@@ -27,10 +33,4 @@ public class RegistrationEvent extends ApplicationEvent {
 	public void setApplicationUrl(String applicationUrl) {
 		this.applicationUrl = applicationUrl;
 	}
-
-	public RegistrationEvent(User user, String applicationUrl) {
-        super(user);
-        this.user = user;
-        this.applicationUrl = applicationUrl;
-    }
 }

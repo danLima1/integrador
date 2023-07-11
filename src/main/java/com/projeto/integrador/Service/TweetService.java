@@ -1,8 +1,6 @@
 package com.projeto.integrador.Service;
 
-
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,8 +9,15 @@ import org.springframework.stereotype.Service;
 import com.projeto.integrador.Entity.Follower;
 import com.projeto.integrador.Entity.Tweet;
 import com.projeto.integrador.Entity.User;
+import com.projeto.integrador.Repository.FollowerRepository;
+import com.projeto.integrador.Repository.LikerRepository;
+import com.projeto.integrador.Repository.NotificationRepository;
 import com.projeto.integrador.Repository.TweetRepository;
 import com.projeto.integrador.exceptions.TweetNotFoundException;
+import com.projeto.integrador.notification.Notification;
+import com.projeto.integrador.notification.TweetPublisher;
+import com.projeto.integrador.notification.UserObserver;
+
 @Service
 public class TweetService {
 
@@ -20,10 +25,22 @@ public class TweetService {
     private TweetRepository tweetRepository;
 
     @Autowired
-    private FollowerService followerService;
+private FollowerRepository followerRepository;
 
     @Autowired
     private UserAuthenticationService userAuthenticationService;
+
+    @Autowired
+    private LikerRepository likerRepository;
+
+    @Autowired
+    private LikerService likerService;
+
+    @Autowired
+    private TweetPublisher tweetPublisher;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
 
 
     public List<User> shareTweet(Long tweetId) throws TweetNotFoundException {
@@ -34,24 +51,27 @@ public class TweetService {
         return tweet.getSharedBy();
     }
 
-
-    public List<Tweet> showFeed() {
-      User loggedInUser = userAuthenticationService.getLoggedInUser();
-      List<Follower> usersFollowedByLoggedInUser = followerService.getUserFollowee(loggedInUser.getId());
-      List<Tweet> userTweets = new ArrayList<>();
-      for(Follower f : usersFollowedByLoggedInUser) {
-          userTweets.addAll(tweetRepository.findLatestUserTweet(f.getId()));
-      }
-      return userTweets;
-    }
-
     public void createTweet(Tweet tweet) {
         User loggedInUser = userAuthenticationService.getLoggedInUser();
         tweet.setUser(loggedInUser);
         tweet.setCreatedAt(LocalDateTime.now());
         tweet.setUpdatedAt(LocalDateTime.now());
+        tweet.setEdited(false);
         tweetRepository.save(tweet);
 
+            List<Follower> followers = followerRepository.findByFollowing(loggedInUser);
+            for(Follower follower : followers) {
+                User userObserver = follower.getFollower();
+                UserObserver observer = new UserObserver(userObserver);
+                tweetPublisher.addObserver(observer);
+
+                Notification notification = new Notification();
+                notification.setRecipient(userObserver);
+                notification.setTweet(tweet);
+                notification.setRead(false);
+                notificationRepository.save(notification);
+            }
+            tweetPublisher.notifyObservers(tweet);
     }
 
     public void updateTweet(Long tweetId, Tweet tweet) throws Exception {
@@ -60,8 +80,13 @@ public class TweetService {
         if (updatedTweet.getUser() != loggedInUser) {
             throw new Exception("You are not authorized to edit this tweet");
         }
-        updatedTweet.setMessage(tweet.getMessage());
+        if (tweet.getMessage() != null && !tweet.getMessage().trim().isEmpty()) {
+            updatedTweet.setMessage(tweet.getMessage());
+        } else {
+            throw new Exception("You need to provide a value for the tweet");
+        }
         updatedTweet.setUpdatedAt(LocalDateTime.now());
+        updatedTweet.setEdited(true);
         tweetRepository.save(updatedTweet);
     }
 
@@ -80,7 +105,19 @@ public class TweetService {
     }
 
     public List<Tweet> getTweets() {
-        return tweetRepository.findAll();
+        List<Tweet> tweets = tweetRepository.findAll();
+        User loggedInUser = userAuthenticationService.getLoggedInUser();
+        for(Tweet tweet: tweets) {
+            int likeCount = likerRepository.countByLikedTweet(tweet);
+            tweet.setLikeCount(likeCount);
+            if(loggedInUser != null) {
+                tweet.setLikedByCurrentUser(likerService.hasUserLikedTweet(tweet.getId(), loggedInUser.getId()));
+            } else {
+                tweet.setLikedByCurrentUser(false);
+            }
+
+        }
+        return tweets;
     }
 
 

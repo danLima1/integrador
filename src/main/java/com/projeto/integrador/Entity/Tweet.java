@@ -1,5 +1,8 @@
 package com.projeto.integrador.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -7,6 +10,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "id")
 public class Tweet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,19 +29,22 @@ public class Tweet {
     @ManyToOne
     private User user;
 
+    private int likeCount;
 
-    public int getTweetLikes() {
-        return this.tweetLikes;
+    private boolean edited;
+    @OneToMany(mappedBy = "likedTweet", cascade = CascadeType.REMOVE)
+    private List<Liker> likes;
+
+    @Transient
+    private boolean likedByCurrentUser;
+
+    public boolean isLikedByCurrentUser() {
+        return likedByCurrentUser;
     }
 
-    public void ifTweetIsLiked() {
-        this.tweetLikes += 1;
+    public void setLikedByCurrentUser(boolean likedByCurrentUser) {
+        this.likedByCurrentUser = likedByCurrentUser;
     }
-    public void ifTweetIsUnliked(){
-        this.tweetLikes -= 1;
-    }
-
-    private int tweetLikes = 0;
 
     @OneToMany
     private List<Comment> comments;
@@ -65,6 +74,22 @@ public class Tweet {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public List<Liker> getLikes() {
+        return likes;
+    }
+
+    public void setLikes(List<Liker> likes) {
+        this.likes = likes;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(int likeCount) {
+        this.likeCount = likeCount;
     }
 
     public String getMessage() {
@@ -97,6 +122,14 @@ public class Tweet {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
     }
 
     public void addSharedBy(User user) {

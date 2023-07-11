@@ -1,5 +1,7 @@
 package com.projeto.integrador.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 
 @Entity
@@ -9,12 +11,14 @@ public class Follower {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "followee")
-    private User followee;
+    @JsonIgnore
+    private User follower;
 
     @ManyToOne
-    @JoinColumn(name = "follower")
-    private User follower;
+    @JsonIgnore
+    private User following;
+
+
 
     public Long getId() {
         return id;
@@ -24,12 +28,12 @@ public class Follower {
         this.id = id;
     }
 
-    public User getFollowee() {
-        return followee;
+    public User getFollowing() {
+        return following;
     }
 
-    public void setFollowee(User followee) {
-        this.followee = followee;
+    public void setFollowing(User following) {
+        this.following = following;
     }
 
     public User getFollower() {

@@ -14,6 +14,7 @@ import com.projeto.integrador.Repository.LikerRepository;
 import com.projeto.integrador.Repository.TweetRepository;
 import com.projeto.integrador.exceptions.CommentNotFoundException;
 import com.projeto.integrador.exceptions.TweetNotFoundException;
+import com.projeto.integrador.exceptions.UserNotFoundException;
 
 @Service
 public class LikerService {
@@ -32,52 +33,43 @@ public class LikerService {
 
 
 
-    public Liker likeTweet(Long tweetId) throws TweetNotFoundException {
+    public Liker likeTweet(Long tweetId) throws TweetNotFoundException, UserNotFoundException {
         Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(() -> new TweetNotFoundException("Tweet doesn't exist"));
         User loggedInUser = userAuthenticationService.getLoggedInUser();
-
-        Liker like = new Liker();
-        like.setLikedTweet(tweet);
-        like.setUser(loggedInUser);
-        tweet.ifTweetIsLiked();
-        likerRepository.save(like);
-        return like;
+        if(loggedInUser == null) {
+            throw new UserNotFoundException("User not logged in");
+        }
+        Liker existingLike = likerRepository.findByLikedTweetAndUser(tweet, loggedInUser);
+        if(existingLike != null) {
+            likerRepository.delete(existingLike);
+            return null;
+        } else {
+            Liker like = new Liker();
+            like.setLikedTweet(tweet);
+            like.setUser(loggedInUser);
+            return likerRepository.save(like);
+        }
     }
 
-    public Liker likeComment(Long commentId) throws CommentNotFoundException {
+    public boolean hasUserLikedTweet(Long tweetId, Long userId) {
+        System.out.println(tweetId);
+        System.out.println(userId);
+        return likerRepository.existsByLikedTweetIdAndUserId(tweetId, userId);
+    }
+
+    public Liker likeComment(Long commentId, Liker like) throws CommentNotFoundException, UserNotFoundException {
         Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new CommentNotFoundException("Comment doesn't exist"));
         User loggedInUser = userAuthenticationService.getLoggedInUser();
-        Liker like = new Liker();
+        if(loggedInUser == null) {
+            throw new UserNotFoundException("User not logged in");
+        }
         like.setLikedComment(comment);
         like.setUser(loggedInUser);
-        likerRepository.save(like);
-        return like;
+        return likerRepository.save(like);
     }
 
-    public void unlikeTweet(Long tweetId) throws TweetNotFoundException {
-        Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(() -> new TweetNotFoundException("Tweet doesn't exist"));
-        User loggedInUser = userAuthenticationService.getLoggedInUser();
-        Liker like = likerRepository.findByUser(loggedInUser);
-        tweet.ifTweetIsUnliked();
-        likerRepository.delete(like);
-    }
 
-    public void unlikeComment(Long commentId) throws CommentNotFoundException {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new CommentNotFoundException("Tweet doesn't exist"));
-        User loggedInUser = userAuthenticationService.getLoggedInUser();
-        Liker unlike = likerRepository.findByLikedCommentAndUser(comment, loggedInUser);
-        likerRepository.delete(unlike);
-    }
 
-    public List<Liker> getTweetLikes(Long tweetId) throws TweetNotFoundException {
-        Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(() -> new TweetNotFoundException("Tweet doesn't exist"));
 
-        return likerRepository.getTweetLikes(tweet);
-    }
-
-    public List<Liker> getCommentLikes(Long commentId) throws CommentNotFoundException {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new CommentNotFoundException("Comment doesn't exist") );
-        return likerRepository.getCommentLikes(comment);
-    }
 
 }

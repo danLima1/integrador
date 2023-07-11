@@ -23,6 +23,8 @@ public class User {
 
     private LocalDateTime creationDate;
 
+    private String dateOfBirth;
+
     @Enumerated(value = EnumType.STRING)
     private UserStatus accountStatus;
 
@@ -32,21 +34,37 @@ public class User {
     private UserAccountType accountType;
 
 
-    @OneToMany(mappedBy = "follower")
+    @OneToMany(mappedBy = "follower", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnore
-    private List<Follower> follower;
+    private List<Follower> follows;
 
-
+    @OneToMany(mappedBy = "following", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Follower> followedBy;
 
     public List<Follower> getFollows() {
-        return follower;
+        return follows;
     }
 
     public void setFollows(List<Follower> follows) {
-        this.follower = follows;
+        this.follows = follows;
     }
 
+    public List<Follower> getFollowedBy() {
+        return followedBy;
+    }
 
+    public void setFollowedBy(List<Follower> followedBy) {
+        this.followedBy = followedBy;
+    }
+
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
 
     public Long getId() {
         return id;

@@ -1,21 +1,27 @@
 package com.projeto.integrador.Entity;
 
 import javax.persistence.*;
-
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 @Entity
+@JsonIdentityInfo(
+        generator = ObjectIdGenerators.PropertyGenerator.class,
+        property = "id")
 public class Liker {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @ManyToOne
     private Tweet likedTweet;
 
-    @OneToOne
+    @ManyToOne
     private Comment likedComment;
 
     @ManyToOne
     private User user;
+
+
 
     public Long getId() {
         return id;

@@ -28,10 +28,10 @@ public class TweetController {
         return tweetService.shareTweet(tweetId);
     }
 
-    @GetMapping("/tweets/feed")
-    public List<Tweet> showFeed() {
-        return tweetService.showFeed();
-    }
+//    @GetMapping("/tweets/feed")
+//    public List<Tweet> showFeed() {
+//        return tweetService.showFeed();
+//    }
 
     @GetMapping("/tweets")
     public List<Tweet> getTweets(){

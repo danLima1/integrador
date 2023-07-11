@@ -4,9 +4,11 @@ import com.projeto.integrador.*;
 import com.projeto.integrador.Entity.User;
 import com.projeto.integrador.Service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@CrossOrigin(origins = "http://localhost:8081")
 @RestController
 public class AuthController {
 
@@ -26,4 +28,5 @@ public class AuthController {
             throw new RuntimeException("User invalid credentials");
         }
     }
+
 }

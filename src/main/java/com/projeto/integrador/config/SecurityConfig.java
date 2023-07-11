@@ -18,7 +18,7 @@ public class SecurityConfig {
     private static final String[] WHITE_LIST_URLS = {
             "/register", "/users", "/verifyRegistration", "/resendVerifyToken",
             "/resetPassword", "/savePassword", "/changePassword", "/tweet","/tweets",
-            "tweet/{tweetId}", "follow/user/{userId}", "/login", "/user/{userId}"
+            "tweet/{tweetId}", "follow/user/{userId}", "/login", "/user/{userId}", "user/username/{username}", "/follow/{userId}","/unfollow/{userId}"
     };
 
     @Bean
@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .permitAll().anyRequest().
                 authenticated()
                 .and()
-                .httpBasic(Customizer.withDefaults());
+                .httpBasic().disable();
         return http.build();
     }
 

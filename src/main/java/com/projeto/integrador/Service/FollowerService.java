@@ -3,6 +3,7 @@ package com.projeto.integrador.Service;
 import com.projeto.integrador.Entity.Follower;
 import com.projeto.integrador.Entity.User;
 import com.projeto.integrador.exceptions.UserNotFoundException;
+import com.projeto.integrador.notification.TweetPublisher;
 import com.projeto.integrador.Repository.FollowerRepository;
 import com.projeto.integrador.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,36 +24,55 @@ public class FollowerService {
     @Autowired
     private UserAuthenticationService userAuthenticationService;
 
-    public void followUser(Long userId) throws UserNotFoundException {
+    @Autowired
+private TweetPublisher tweetPublisher;
+
+    public boolean toggleFollowUser(Long userId) throws UserNotFoundException {
         User loggedInUser = userAuthenticationService.getLoggedInUser();
-        User followee = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(String.format("User with id = %d doesn't exist", userId)));
-        Follower follower = new Follower();
-        follower.setFollower(loggedInUser);
-        follower.setFollowee(followee);
-        List<Follower> userFollowers = new ArrayList<>();
-        userFollowers.add(follower);
-        loggedInUser.setFollows(userFollowers);
-        followerRepository.save(follower);
+        User followee = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("Error 404 - User not found"));
+
+        if (loggedInUser != null && followee != null) {
+            Follower existingFollower = followerRepository.findByFollowerAndFollowing(loggedInUser, followee);
+            if (existingFollower != null) {
+                followerRepository.delete(existingFollower);
+                return false;
+            } else {
+                Follower newFollower = new Follower();
+                newFollower.setFollower(loggedInUser);
+                newFollower.setFollowing(followee);
+                followerRepository.save(newFollower);
+                return true;
+            }
+        }
+        return false;
     }
 
-    public void unfollowUser(Long userId) throws Exception {
+    public boolean isUserFollowing(Long profileUserId) {
         User loggedInUser = userAuthenticationService.getLoggedInUser();
-        User following = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(String.format("User with id = %d doesn't exist", userId)));
-        Follower follower = followerRepository.findByFolloweeAndFollower(following,loggedInUser)
-                .orElseThrow(() -> new Exception("Follower not found"));
-        followerRepository.delete(follower);
+        User profileUser = userRepository.findById(profileUserId).orElse(null);
+
+        if (loggedInUser != null && profileUser != null) {
+            Follower existingFollower = followerRepository.findByFollowerAndFollowing(loggedInUser, profileUser);
+            return existingFollower != null;
+        }
+
+        return false;
     }
 
-    public List<Follower> getUserFollowers(Long userId) throws UserNotFoundException {
-        User user = userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException(String.format("User with id = %d was not found",userId)));
-        return followerRepository.findUserFollowers(user);
-    }
-
-    public List<Follower> getUserFollowee(Long userId) {
+    public long getNumberOfFollowers(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
-        return followerRepository.findUserFollowee(user);
+        if (user != null) {
+            return followerRepository.countByFollowing(user);
+        }
+        return 0;
+    }
+
+    public long getNumberOfFollowings(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            return followerRepository.countByFollower(user);
+        }
+        return 0;
     }
 
 }

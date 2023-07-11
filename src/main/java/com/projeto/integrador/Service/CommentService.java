@@ -1,20 +1,20 @@
 package com.projeto.integrador.Service;
 
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.projeto.integrador.Entity.Comment;
 import com.projeto.integrador.Entity.Tweet;
 import com.projeto.integrador.Entity.User;
-import com.projeto.integrador.Repository.CommentRepository;
-import com.projeto.integrador.Repository.TweetRepository;
 import com.projeto.integrador.exceptions.CommentNotFoundException;
 import com.projeto.integrador.exceptions.TweetNotFoundException;
-
+import com.projeto.integrador.exceptions.UserNotFoundException;
+import com.projeto.integrador.Repository.CommentRepository;
+import com.projeto.integrador.Repository.TweetRepository;
+import com.projeto.integrador.Repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 @Service
 public class CommentService {
 
@@ -25,6 +25,9 @@ public class CommentService {
     private TweetRepository tweetRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private UserAuthenticationService userAuthenticationService;
 
     public Comment createTweetComment(Long tweetId, Comment comment) throws TweetNotFoundException {
@@ -32,6 +35,7 @@ public class CommentService {
         User loggedInUser = userAuthenticationService.getLoggedInUser();
         comment.setTweet(tweet);
         comment.setUser(loggedInUser);
+        comment.setReply(false);
         comment.setCreatedAt(LocalDateTime.now());
         comment.setUpdatedAt(LocalDateTime.now());
 
@@ -40,7 +44,7 @@ public class CommentService {
 
     public List<Comment> getTweetComments(Long tweetId) throws TweetNotFoundException {
         Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(() -> new TweetNotFoundException("Tweet doesn't exist"));
-        return commentRepository.findByTweetId(tweet);
+        return commentRepository.findByTweetAndIsReply(tweet, false);
     }
 
     public void deleteComment(Long commentId) throws Exception {
@@ -65,4 +69,29 @@ public class CommentService {
         updatedComment.setUpdatedAt(LocalDateTime.now());
         commentRepository.save(updatedComment);
     }
+
+    public Comment createReply(Long parentCommentId, User user, String text) throws CommentNotFoundException {
+        Comment parentComment = commentRepository.findById(parentCommentId)
+                .orElseThrow(() -> new CommentNotFoundException("An unexpected error has happend, comment not found 404"));
+        Tweet tweet = parentComment.getTweet();
+        Comment reply = new Comment();
+        reply.setParentComment(parentComment);
+        reply.setUser(user);
+        reply.setTweet(tweet);
+        reply.setText(text);
+        reply.setReply(true);
+        reply.setCreatedAt(LocalDateTime.now());
+        reply.setUpdatedAt(LocalDateTime.now());
+        return commentRepository.save(reply);
+    }
+
+public List<Comment> getReplies(Long commentId, boolean isReply) throws CommentNotFoundException {
+        Comment parentComment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new CommentNotFoundException(("Comment doesnt exist")));
+        return commentRepository.findByParentCommentAndIsReplyOrderByCreatedAtDesc(parentComment, isReply);
+}
+    public Long countCommentsByTweetId(Long tweetId) {
+        return commentRepository.countByTweetId(tweetId);
+    }
+
 }

@@ -7,15 +7,16 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+
 @Repository
 public interface FollowerRepository extends JpaRepository<Follower, Long> {
 
-    @Query(value = "SELECT f FROM Follower f WHERE f.followee =?1 AND f.follower=?2")
-    Optional<Follower> findByFolloweeAndFollower(User followee, User follower);
+List<Follower> findByFollower(User follower);
+List<Follower> findByFollowing(User following);
+Follower findByFollowerAndFollowing(User follower, User following);
 
-    @Query(value = "SELECT f from Follower f WHERE f.followee = ?1")
-    List<Follower> findUserFollowers(User loggedInUser);
 
-    @Query(value = "SELECT f FROM Follower f WHERE f.follower = ?1")
-    List<Follower> findUserFollowee(User loggedInUser);
+    long countByFollowing(User user);
+
+    long countByFollower(User user);
 }

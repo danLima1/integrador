@@ -1,17 +1,16 @@
 package com.projeto.integrador.Repository;
 
 
-import java.util.List;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.stereotype.Repository;
 
 import com.projeto.integrador.Entity.Comment;
 import com.projeto.integrador.Entity.Liker;
 import com.projeto.integrador.Entity.Tweet;
 import com.projeto.integrador.Entity.User;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository
 public interface LikerRepository extends JpaRepository<Liker, Long> {
@@ -21,6 +20,7 @@ public interface LikerRepository extends JpaRepository<Liker, Long> {
     @Query(value = "SELECT l FROM Liker l WHERE l.likedComment = ?1")
     List<Liker> getCommentLikes(Comment comment);
 
+    List<Liker> findByLikedComment(Comment comment);
     Liker findByLikedTweetAndUser(Tweet likedTweet, User user);
 
     Liker findByLikedCommentAndUser(Comment likedComment, User user);
@@ -28,4 +28,9 @@ public interface LikerRepository extends JpaRepository<Liker, Long> {
     Liker findByLikedTweet(Tweet likedTweet);
 
     Liker findByUser(User user);
+
+    int countByLikedTweet(Tweet tweet);
+
+    @Query("SELECT COUNT(l) > 0 FROM Liker l WHERE l.likedTweet.id = :tweetId AND l.user.id = :userId")
+    boolean existsByLikedTweetIdAndUserId(Long tweetId, Long userId);
 }

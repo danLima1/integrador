@@ -7,6 +7,18 @@ public class PasswordModel {
 
     private String token;
 
+    public PasswordModel(String newPassword, String token) {
+        this.newPassword = newPassword;
+        this.token = token;
+    }
+
+    public PasswordModel(String newPassword) {
+        this.newPassword = newPassword;
+    }
+
+    public PasswordModel() {
+    }
+
     public String getToken() {
         return token;
     }

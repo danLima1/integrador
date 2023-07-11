@@ -14,7 +14,14 @@ public class TokenEvent extends ApplicationEvent {
     private VerificationToken verificationToken;
     private String applicationUrl;
 
-    public User getUser() {
+    public TokenEvent(User user, VerificationToken verificationToken, String applicationUrl) {
+        super(verificationToken);
+        this.verificationToken = verificationToken;
+        this.applicationUrl = applicationUrl;
+        this.user = user;
+    }
+
+	public User getUser() {
 		return user;
 	}
 
@@ -37,11 +44,4 @@ public class TokenEvent extends ApplicationEvent {
 	public void setApplicationUrl(String applicationUrl) {
 		this.applicationUrl = applicationUrl;
 	}
-
-	public TokenEvent(User user, VerificationToken verificationToken, String applicationUrl) {
-        super(verificationToken);
-        this.verificationToken = verificationToken;
-        this.applicationUrl = applicationUrl;
-        this.user = user;
-    }
 }
